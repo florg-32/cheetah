@@ -25,7 +25,7 @@ for step in range(start_time, stop_time, STEP_SIZE_MILLIS):
     output_ratings.append(ratings[index-1])
 
 with open(sys.argv[2], "w") as file:
-    writer = csv.writer(file, dialect="excel")
+    writer = csv.writer(file, dialect="excel", lineterminator='\n')
     writer.writerows(zip(*[output_times, output_ratings]))
 
 # def plot():
