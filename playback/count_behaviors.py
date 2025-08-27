@@ -14,7 +14,7 @@ from tkinter import filedialog
 def main():
     if len(sys.argv) < 3:
         input_file = filedialog.askopenfilename(title="Select input")
-        output_file = filedialog.asksaveasfile(title="Select output file")
+        output_file = filedialog.asksaveasfilename(title="Select output file")
     else:
         input_file = sys.argv[1]
         output_file = sys.argv[2]
