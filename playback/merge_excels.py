@@ -20,7 +20,7 @@ def main():
         input_folder = sys.argv[1]
         output = sys.argv[2]
 
-    files = map(lambda x: input_folder + x, os.listdir(input_folder))
+    files = map(lambda x: os.path.join(input_folder, x), os.listdir(input_folder))
     excels = map(pd.read_excel, files)
     with_id = map(create_unique_id, excels)
     pd.concat(with_id).to_excel(output, index=False)
