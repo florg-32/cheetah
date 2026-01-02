@@ -1,19 +1,30 @@
 import pandas as pd
+import os
+import argparse
 
-ALL_METADATA_PATH = "../../cheetah-raw/"
-OBSERVER_DATA_PATH = "../../cheetah-raw/kathi/"
+AGGREGATED_EVENTS_PATH = "aggregated events 60sec.xlsx"
+OBSERVER_METADATA_PATH = "playback_plan_BORIS_blind_coding.xlsx"
 
-AGGREGATED_EVENTS_PATH = OBSERVER_DATA_PATH + "aggregated events 60sec.xlsx"
-OBSERVER_METADATA_PATH = OBSERVER_DATA_PATH + "playback_plan_BORIS_blind_coding.xlsx"
-POST_PLAYBACK_DURATIONS_PATH = ALL_METADATA_PATH + "playback_plan_BORIS_looking_durations.xlsx"
-STIMULUS_DATA_PATH = ALL_METADATA_PATH + "playback_plan_filled_out.xlsx"
+POST_PLAYBACK_DURATIONS_PATH = "playback_plan_BORIS_looking_durations.xlsx"
+STIMULUS_DATA_PATH = "playback_plan_filled_out.xlsx"
 
 
 def main():
-    aggregated_events = pd.read_excel(AGGREGATED_EVENTS_PATH)
+    parser = argparse.ArgumentParser(description="Combine annotation exports with playback plan and metadata")
+    parser.add_argument("general_metadata", help=f"path to the folder containing {POST_PLAYBACK_DURATIONS_PATH} and {STIMULUS_DATA_PATH}")
+    parser.add_argument("observer_data", help=f"path to the individual observers {AGGREGATED_EVENTS_PATH} and {OBSERVER_METADATA_PATH}")
+    parser.add_argument("-o", "--output", help="output file", default="merged.xlsx")
+    args = parser.parse_args()
+
+    aggregated_events_path = os.path.join(args.observer_data, AGGREGATED_EVENTS_PATH)
+    post_playback_path = os.path.join(args.general_metadata, POST_PLAYBACK_DURATIONS_PATH)
+    stimulus_data_path = os.path.join(args.general_metadata, STIMULUS_DATA_PATH)
+    observer_metadata_path = os.path.join(args.observer_data, OBSERVER_METADATA_PATH)
+
+    aggregated_events = pd.read_excel(aggregated_events_path)
     aggregated_events = aggregated_events.pipe(with_uid).pipe(remove_events_without_subject)
 
-    post_playback_durations = pd.read_excel(POST_PLAYBACK_DURATIONS_PATH)
+    post_playback_durations = pd.read_excel(post_playback_path)
     post_playback_durations = extract_post_playback_durations(post_playback_durations)
 
     duration_columns = ["latency to look", "latency to move away", "raise head - looking at speaker", "out of sight"]
@@ -22,10 +33,10 @@ def main():
     )
     behavior_counts = count_behaviors(aggregated_events)
 
-    stimulus_data = pd.read_excel(STIMULUS_DATA_PATH)
+    stimulus_data = pd.read_excel(stimulus_data_path)
     stimulus_data = extract_stimulus_data(stimulus_data)
 
-    metadata = pd.read_excel(OBSERVER_METADATA_PATH)
+    metadata = pd.read_excel(observer_metadata_path)
     metadata = extract_metadata(metadata)
 
     result = (
@@ -35,7 +46,7 @@ def main():
         .join(metadata["focal_specific"], validate="1:1")
     )
     print(result)
-    result.to_excel("/tmp/out.xlsx")
+    result.to_excel(args.output)
 
 
 def with_uid(df: pd.DataFrame) -> pd.DataFrame:
@@ -117,6 +128,7 @@ def extract_metadata(df: pd.DataFrame) -> dict[str, pd.DataFrame]:
         "habitat",
         "group 30sec-looking",
         "group 30sec-moving",
+        "species",
         "temp",
         "wind",
         "dist. to speaker",
@@ -125,7 +137,7 @@ def extract_metadata(df: pd.DataFrame) -> dict[str, pd.DataFrame]:
 
     # This function will extract the relevant columns for subject n
     def focal_specific(df, n):
-        translation = {f"focal {n}": "sex", f"f{n} move of": "move of distance", f"species focal {n}": "species"}
+        translation = {f"focal {n}": "sex", f"f{n} move of": "move of distance"}
         df = df[translation.keys()]
         df = df.rename(columns=translation)
         df = df[df["sex"] != "/"]
